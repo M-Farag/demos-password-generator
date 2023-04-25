@@ -27,6 +27,9 @@ impl Arguments {
     {
         let args:Arguments = Arguments::from_args_safe()?;
         let length:usize = args.length;
+        if length < 5 || length > 80 {
+            Err("The length must be between 5 and 80")?;
+        }
         Ok(Self { length, ..args })
     }
 }
