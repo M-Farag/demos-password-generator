@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use structopt::StructOpt;
 use rand::seq::SliceRandom;
 
@@ -5,15 +7,27 @@ use rand::seq::SliceRandom;
 #[structopt(name="Password generator",about="A strong password generator")]
 struct Arguments {
     #[structopt(long="length", short="l", default_value="8")]
-    length:usize
+    length:usize,
+
+    #[structopt(long="lowercase", short="w")]
+    is_lowercase:bool,
+
+    #[structopt(long="uppercase", short="u")]
+    is_uppercase:bool,
+
+    #[structopt(long="numbers", short="n")]
+    is_numbers:bool,
+
+    #[structopt(long="special", short="s")]
+    is_special_symbols:bool
 }
 
 impl Arguments {
-    fn get() -> Self
+    fn get() -> Result<Self,Box<dyn Error>>
     {
-        let args:Arguments = Arguments::from_args();
+        let args:Arguments = Arguments::from_args_safe()?;
         let length:usize = args.length;
-        Self { length }
+        Ok(Self { length, ..args })
     }
 }
 
@@ -25,11 +39,31 @@ pub struct Password {
 
 impl Password {
     
-    pub fn new() -> Self
+    pub fn new() -> Result<Self,Box<dyn Error>>
     {
-        let args = Arguments::get();
+        let args = Arguments::get()?;
 
-        let chars_pool:Vec<char> = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_+-=".chars().collect();
+        let mut chars_pool:Vec<char> = Vec::new();
+
+        if args.is_lowercase {
+            chars_pool.extend('a'..='z');
+        }
+
+        if args.is_uppercase {
+            chars_pool.extend('A'..='Z');
+        }
+
+        if args.is_numbers {
+            chars_pool.extend('0'..='9');
+        }
+
+        if args.is_special_symbols {
+            chars_pool.extend("!@#$%^&*()_+-=[]{}|;':,./<>?".chars());
+        }
+
+        if chars_pool.is_empty() {
+            Err("You must select at least one character type")?;
+        }
 
         let as_text:String = (0..args.length).map(
             |_| {
@@ -37,6 +71,6 @@ impl Password {
             }
         ).collect();
 
-        Self { as_text, length: args.length }
+       Ok( Self { as_text, length: args.length })
     }
 }
